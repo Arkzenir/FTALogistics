@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Faelyn Trade Association · Logistics Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0e0c09;
+    --surface:   #171410;
+    --card:      #1e1a14;
+    --border:    #3a3020;
+    --gold:      #c9a84c;
+    --gold-dim:  #7a6230;
+    --gold-pale: #f0dba0;
+    --red:       #a63030;
+    --green:     #3a7a3a;
+    --text:      #d4c89a;
+    --muted:     #7a6e52;
+    --radius:    6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 16px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(180deg, #1a1508 0%, var(--bg) 100%);
+  }
+  header svg { flex-shrink: 0; }
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: .08em;
+    line-height: 1.1;
+  }
+  header p { font-size: .85rem; color: var(--muted); font-style: italic; margin-top: 2px; }
+
+  /* ── LAYOUT ── */
+  main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  aside {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    grid-row: 1 / 3;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 6px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Cinzel', serif;
+    font-size: .72rem;
+    letter-spacing: .06em;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .tab-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; padding: 16px; gap: 12px; }
+  .tab-panel.active { display: flex; }
+
+  /* ── FORM ELEMENTS ── */
+  label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 4px; letter-spacing: .04em; }
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    font-family: 'Crimson Pro', serif;
+    font-size: .95rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus { border-color: var(--gold-dim); }
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=number]::-webkit-inner-spin-button { display: none; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .btn {
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: .75rem;
+    letter-spacing: .07em;
+    transition: filter .18s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--gold); color: #0e0c09; font-weight: 700; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-danger  { background: var(--red);  color: #fff; }
+  .btn-danger:hover { filter: brightness(1.15); }
+  .btn-ghost   { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--gold-dim); color: var(--text); }
+  .btn-sm { padding: 5px 10px; font-size: .68rem; }
+
+  /* ── LOCATION LIST ── */
+  .loc-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .loc-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color .2s;
+    user-select: none;
+  }
+  .loc-item:hover { border-color: var(--gold-dim); }
+  .loc-item.selected { border-color: var(--gold); }
+  .loc-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,.25);
+  }
+  .loc-name { flex: 1; font-size: .9rem; }
+  .loc-coords { font-size: .75rem; color: var(--muted); flex-shrink: 0; }
+  .loc-del { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 4px; font-size: 1rem; line-height: 1; border-radius: 3px; }
+  .loc-del:hover { color: var(--red); background: rgba(166,48,48,.15); }
+
+  /* ── ROUTE PANEL ── */
+  .route-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .route-stop {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .88rem;
+  }
+  .stop-num { width: 20px; height: 20px; border-radius: 50%; background: var(--gold-dim); color: var(--gold-pale); font-size: .72rem; font-family: 'Cinzel',serif; display: flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .stop-dist { margin-left: auto; font-size: .78rem; color: var(--muted); }
+
+  /* ── COST PANEL ── */
+  .cost-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .cost-row { display: flex; justify-content: space-between; align-items: center; font-size: .88rem; }
+  .cost-row.total { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; font-family: 'Cinzel',serif; font-size:.9rem; color: var(--gold); }
+  .cost-label { color: var(--muted); }
+  .cost-val { color: var(--text); }
+  .cost-val.copper { color: #d4a04c; }
+
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    color: var(--gold-dim);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+  }
+
+  /* ── MAP AREA ── */
+  #map-container {
+    position: relative;
+    overflow: hidden;
+    background: #0a0905;
+    background-image:
+      radial-gradient(ellipse at 30% 40%, rgba(60,50,20,.3) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(50,40,20,.07) 50px),
+      repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(50,40,20,.07) 50px);
+    cursor: crosshair;
+  }
+  #map-canvas { display: block; width: 100%; height: 100%; }
+
+  .map-tooltip {
+    position: absolute;
+    background: rgba(14,12,9,.92);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    font-size: .8rem;
+    pointer-events: none;
+    display: none;
+    white-space: nowrap;
+    color: var(--gold-pale);
+  }
+
+  /* ── BOTTOM STATS BAR ── */
+  #stats-bar {
+    grid-column: 2;
+    border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    background: var(--surface);
+    font-size: .82rem;
+  }
+  .stat { display: flex; gap: 8px; align-items: center; }
+  .stat-label { color: var(--muted); }
+  .stat-val { color: var(--gold-pale); font-family: 'Cinzel',serif; font-size:.85rem; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .empty-hint { color: var(--muted); font-style: italic; font-size: .85rem; text-align: center; margin-top: 16px; }
+
+  /* map controls */
+  .map-controls {
+    position: absolute;
+    top: 12px; right: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .map-ctrl-btn {
+    width: 32px; height: 32px;
+    background: rgba(14,12,9,.85);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items:center; justify-content:center;
+    transition: border-color .2s;
+  }
+  .map-ctrl-btn:hover { border-color: var(--gold-dim); }
+
+  .click-hint {
+    position: absolute;
+    bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(14,12,9,.8);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: .75rem;
+    color: var(--muted);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  input[type=checkbox] { width:auto; accent-color: var(--gold); }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: .88rem; }
+
+  .badge {
+    display:inline-block; padding: 2px 7px; border-radius: 10px;
+    font-size:.72rem; font-family:'Cinzel',serif; letter-spacing:.04em;
+  }
+  .badge-gold { background: rgba(201,168,76,.15); border:1px solid var(--gold-dim); color:var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <circle cx="18" cy="18" r="17" stroke="#c9a84c" stroke-width="1.5"/>
+    <path d="M18 6 L21 14 L30 14 L23 19 L26 28 L18 23 L10 28 L13 19 L6 14 L15 14 Z" fill="none" stroke="#c9a84c" stroke-width="1.2" stroke-linejoin="round"/>
+    <circle cx="18" cy="18" r="2" fill="#c9a84c"/>
+  </svg>
+  <div>
+    <h1>Faelyn Trade Association</h1>
+    <p>Logistics Planner · Route Optimisation &amp; Cost Calculator</p>
+  </div>
+</header>
+
+<main>
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-tabs">
+      <button class="tab-btn active" onclick="switchTab('locations')">Locations</button>
+      <button class="tab-btn" onclick="switchTab('route')">Route</button>
+      <button class="tab-btn" onclick="switchTab('costs')">Costs</button>
+      <button class="tab-btn" onclick="switchTab('settings')">Rates</button>
+    </div>
+
+    <!-- LOCATIONS TAB -->
+    <div id="tab-locations" class="tab-panel active">
+      <div class="section-title">ADD LOCATION</div>
+      <div>
+        <label>Settlement Name</label>
+        <input id="loc-name" type="text" placeholder="e.g. Anvildum"/>
+      </div>
+      <div class="row">
+        <div>
+          <label>X Coordinate</label>
+          <input id="loc-x" type="number" placeholder="0"/>
+        </div>
+        <div>
+          <label>Y Coordinate (Z in-world)</label>
+          <input id="loc-y" type="number" placeholder="0"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addLocation()">＋ Add Location</button>
+      <button class="btn btn-ghost btn-sm" onclick="importSample()">Load sample settlements</button>
+
+      <div class="section-title" style="margin-top:4px">SAVED LOCATIONS</div>
+      <div class="loc-list" id="loc-list"></div>
+    </div>
+
+    <!-- ROUTE TAB -->
+    <div id="tab-route" class="tab-panel">
+      <div class="section-title">ROUTE SETTINGS</div>
+      <div>
+        <label>Route Type</label>
+        <select id="route-type" onchange="recalc()">
+          <option value="open">Open Path (start → end)</option>
+          <option value="round">Round Trip (return to start)</option>
+        </select>
+      </div>
+      <div>
+        <label>Start Location (fixed)</label>
+        <select id="route-start" onchange="recalc()">
+          <option value="">— Any (auto-optimise) —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="recalc()">⟳ Optimise Route</button>
+
+      <div class="section-title" style="margin-top:4px">OPTIMISED STOPS</div>
+      <div class="route-list" id="route-list">
+        <p class="empty-hint">Add at least 2 locations to calculate a route.</p>
+      </div>
+    </div>
+
+    <!-- COSTS TAB -->
+    <div id="tab-costs" class="tab-panel">
+      <div class="section-title">DELIVERY PARAMETERS</div>
+      <div>
+        <label>Number of Carts</label>
+        <input id="c-carts" type="number" value="1" min="1" oninput="updateCosts()"/>
+      </div>
+      <div>
+        <label>Number of Escorts (Mercenaries)</label>
+        <input id="c-escorts" type="number" value="0" min="0" oninput="updateCosts()"/>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="c-grace" onchange="updateCosts()"/>
+        <label for="c-grace" style="margin:0">Grace period patron (first 3 months)</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="c-direct" onchange="updateCosts()"/>
+        <label for="c-direct" style="margin:0">Direct settlement contract (guild fee ×2)</label>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="c-return" onchange="updateCosts()"/>
+        <label for="c-return" style="margin:0">Return trip (½+ cart full)</label>
+      </div>
+
+      <div class="section-title" style="margin-top:4px">COST BREAKDOWN</div>
+      <div class="cost-section" id="cost-breakdown">
+        <p class="empty-hint" style="text-align:left">Calculate a route first.</p>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="tab-settings" class="tab-panel">
+      <div class="section-title">DISTANCE RULES</div>
+      <div>
+        <label>Rounding Unit (blocks)</label>
+        <input id="s-round" type="number" value="500" min="1" oninput="saveSettings();updateCosts()"/>
+      </div>
+
+      <div class="section-title" style="margin-top:4px">TRANSPORT RATES <span style="font-size:.68rem;color:var(--muted);font-family:'Crimson Pro',serif;font-style:italic">(copper per 1000 blocks)</span></div>
+      <div>
+        <label>Cartier rate — per cart</label>
+        <input id="s-cart" type="number" value="4" min="0" step="0.5" oninput="saveSettings();updateCosts()"/>
+      </div>
+      <div>
+        <label>Escort rate — per mercenary</label>
+        <input id="s-escort" type="number" value="6" min="0" step="0.5" oninput="saveSettings();updateCosts()"/>
+      </div>
+
+      <div class="section-title" style="margin-top:4px">GUILD FEE RATES <span style="font-size:.68rem;color:var(--muted);font-family:'Crimson Pro',serif;font-style:italic">(copper per 1000 blocks)</span></div>
+      <div>
+        <label>Standard guild fee</label>
+        <input id="s-guild" type="number" value="2" min="0" step="0.5" oninput="saveSettings();updateCosts()"/>
+      </div>
+      <div>
+        <label>Grace period fee (first 3 months)</label>
+        <input id="s-grace-rate" type="number" value="0.5" min="0" step="0.5" oninput="saveSettings();updateCosts()"/>
+      </div>
+      <div>
+        <label>Direct settlement multiplier</label>
+        <input id="s-direct-mult" type="number" value="2" min="1" step="0.5" oninput="saveSettings();updateCosts()"/>
+      </div>
+
+      <button class="btn btn-ghost btn-sm" onclick="resetSettings()" style="margin-top:4px">↺ Reset to FTA defaults</button>
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <div id="map-container">
+    <canvas id="map-canvas"></canvas>
+    <div class="map-tooltip" id="tooltip"></div>
+    <div class="map-controls">
+      <button class="map-ctrl-btn" onclick="zoomMap(1.25)" title="Zoom in">＋</button>
+      <button class="map-ctrl-btn" onclick="zoomMap(0.8)" title="Zoom out">－</button>
+      <button class="map-ctrl-btn" onclick="resetView()" title="Reset view">⊡</button>
+    </div>
+    <div class="click-hint">Click map to place location · Scroll to zoom · Drag to pan</div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div id="stats-bar">
+    <div class="stat"><span class="stat-label">Locations:</span><span class="stat-val" id="stat-locs">0</span></div>
+    <div class="stat"><span class="stat-label">Total Distance:</span><span class="stat-val" id="stat-dist">—</span></div>
+    <div class="stat"><span class="stat-label">Rounded (500-blk):</span><span class="stat-val" id="stat-dist-r">—</span></div>
+    <div class="stat"><span class="stat-label">Total Cost:</span><span class="stat-val" id="stat-cost" style="color:var(--gold)">—</span></div>
+  </div>
+</main>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const STORAGE_KEY      = 'fta_locations_v2';
+const SETTINGS_KEY     = 'fta_settings_v1';
+const DEFAULT_SETTINGS = { round: 500, cart: 4, escort: 6, guild: 2, graceRate: 0.5, directMult: 2 };
+let locations = [];   // {id, name, x, y, color}
+let routeOrder = [];  // indices into locations[]
+let totalDist  = 0;
+let roundedDist= 0;
+
+// Camera
+let cam = { x: 0, y: 0, scale: 1 };
+let drag = { active: false, sx: 0, sy: 0, cx: 0, cy: 0 };
+let pendingName = null; // for click-to-place flow
+
+const COLORS = ['#e8a840','#5cb8b2','#e87070','#88cc66','#b07ee8','#e87fb0','#70aacc','#d4c050'];
+let colorIdx = 0;
+
+// ─── PERSISTENCE ─────────────────────────────────────────────────────────────
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if (Array.isArray(d)) { locations = d; colorIdx = locations.length % COLORS.length; }
+  } catch {}
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function getSettings() {
+  try {
+    return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
+  } catch { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings() {
+  const s = {
+    round:      parseFloat(document.getElementById('s-round').value)       || DEFAULT_SETTINGS.round,
+    cart:       parseFloat(document.getElementById('s-cart').value)        ?? DEFAULT_SETTINGS.cart,
+    escort:     parseFloat(document.getElementById('s-escort').value)      ?? DEFAULT_SETTINGS.escort,
+    guild:      parseFloat(document.getElementById('s-guild').value)       ?? DEFAULT_SETTINGS.guild,
+    graceRate:  parseFloat(document.getElementById('s-grace-rate').value)  ?? DEFAULT_SETTINGS.graceRate,
+    directMult: parseFloat(document.getElementById('s-direct-mult').value) || DEFAULT_SETTINGS.directMult,
+  };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  // Update rounding on route totals
+  roundedDist = roundN(totalDist, s.round);
+}
+function loadSettings() {
+  const s = getSettings();
+  document.getElementById('s-round').value       = s.round;
+  document.getElementById('s-cart').value        = s.cart;
+  document.getElementById('s-escort').value      = s.escort;
+  document.getElementById('s-guild').value       = s.guild;
+  document.getElementById('s-grace-rate').value  = s.graceRate;
+  document.getElementById('s-direct-mult').value = s.directMult;
+}
+function resetSettings() {
+  localStorage.removeItem(SETTINGS_KEY);
+  loadSettings();
+  updateCosts();
+}
+
+// ─── LOCATION MANAGEMENT ─────────────────────────────────────────────────────
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+function addLocation(nameOverride, xOverride, yOverride) {
+  const name = (nameOverride || document.getElementById('loc-name').value.trim());
+  const x    = parseFloat(xOverride ?? document.getElementById('loc-x').value);
+  const y    = parseFloat(yOverride ?? document.getElementById('loc-y').value);
+  if (!name) { alert('Please enter a settlement name.'); return; }
+  if (isNaN(x) || isNaN(y)) { alert('Please enter valid coordinates.'); return; }
+  locations.push({ id: genId(), name, x, y, color: COLORS[colorIdx % COLORS.length] });
+  colorIdx++;
+  save();
+  document.getElementById('loc-name').value = '';
+  document.getElementById('loc-x').value = '';
+  document.getElementById('loc-y').value = '';
+  refresh();
+}
+
+function removeLocation(id) {
+  locations = locations.filter(l => l.id !== id);
+  save();
+  refresh();
+}
+
+function importSample() {
+  const samples = [
+    { name: 'FTA Guild Hall',      x: 0,    y: 0    },
+    { name: 'Anvildum',            x: -1800, y: -1450 },
+    { name: 'Nightshade Town',     x: 2600,  y: 2900  },
+    { name: 'Golden Harvest',      x: -400,  y: 2700  },
+    { name: 'Hibonite Hideaways',  x: 2200,  y: -600  },
+    { name: 'Ironport Docks',      x: -2900, y: 800   },
+    { name: 'Ashenveil Keep',      x: 1100,  y: -2100 },
+  ];
+  samples.forEach(s => {
+    if (!locations.find(l => l.name === s.name))
+      locations.push({ id: genId(), name: s.name, x: s.x, y: s.y, color: COLORS[colorIdx++ % COLORS.length] });
+  });
+  save();
+  refresh();
+}
+
+// ─── UI RENDERING ─────────────────────────────────────────────────────────────
+function renderLocList() {
+  const el = document.getElementById('loc-list');
+  if (!locations.length) { el.innerHTML = '<p class="empty-hint">No locations yet. Add one above or click the map.</p>'; return; }
+  el.innerHTML = locations.map(l => `
+    <div class="loc-item" onclick="centreOn(${l.x},${l.y})">
+      <div class="loc-dot" style="background:${l.color}"></div>
+      <span class="loc-name">${esc(l.name)}</span>
+      <span class="loc-coords">(${l.x}, ${l.y})</span>
+      <button class="loc-del" onclick="event.stopPropagation();removeLocation('${l.id}')" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function renderStartSelect() {
+  const sel = document.getElementById('route-start');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Any (auto-optimise) —</option>' +
+    locations.map(l => `<option value="${l.id}" ${l.id===cur?'selected':''}>${esc(l.name)}</option>`).join('');
+}
+
+function renderRouteList() {
+  const el = document.getElementById('route-list');
+  if (routeOrder.length < 2) { el.innerHTML = '<p class="empty-hint">Add at least 2 locations to calculate a route.</p>'; return; }
+  let html = '';
+  for (let i = 0; i < routeOrder.length; i++) {
+    const loc = locations[routeOrder[i]];
+    let segDist = '';
+    if (i > 0) {
+      const prev = locations[routeOrder[i-1]];
+      segDist = Math.round(dist(prev, loc)) + ' blks';
+    }
+    html += `<div class="route-stop">
+      <div class="stop-num">${i+1}</div>
+      <div class="loc-dot" style="background:${loc.color}"></div>
+      <span style="flex:1">${esc(loc.name)}</span>
+      ${segDist ? `<span class="stop-dist">+${segDist}</span>` : ''}
+    </div>`;
+  }
+  const rt = document.getElementById('route-type').value;
+  if (rt === 'round' && routeOrder.length > 0) {
+    const last = locations[routeOrder[routeOrder.length-1]];
+    const first = locations[routeOrder[0]];
+    const rd = Math.round(dist(last, first));
+    html += `<div class="route-stop" style="opacity:.6">
+      <div class="stop-num">↩</div>
+      <div class="loc-dot" style="background:${first.color}"></div>
+      <span style="flex:1">${esc(first.name)} (return)</span>
+      <span class="stop-dist">+${rd} blks</span>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderCosts() {
+  const el = document.getElementById('cost-breakdown');
+  if (!routeOrder.length) { el.innerHTML = '<p class="empty-hint" style="text-align:left">Calculate a route first.</p>'; return; }
+
+  const S       = getSettings();
+  const carts   = Math.max(1, parseInt(document.getElementById('c-carts').value)   || 1);
+  const escorts = Math.max(0, parseInt(document.getElementById('c-escorts').value) || 0);
+  const grace   = document.getElementById('c-grace').checked;
+  const direct  = document.getElementById('c-direct').checked;
+  const doReturn = document.getElementById('c-return').checked;
+  const rt      = document.getElementById('route-type').value;
+
+  // distance rounded per settings
+  const distBlocks = roundedDist;
+  let effectiveDist = distBlocks;
+  if (rt === 'open' && doReturn) effectiveDist *= 2;
+  const effKilo = effectiveDist / 1000;
+
+  const carrierCost = ceil4(S.cart   * effKilo * carts);
+  const escortCost  = ceil4(S.escort * effKilo * escorts);
+  const guildRate   = grace ? S.graceRate : (direct ? S.guild * S.directMult : S.guild);
+  const guildCost   = ceil4(guildRate * effKilo);
+  const total       = carrierCost + escortCost + guildCost;
+
+  const cu = 'c¢'; // copper coin symbol
+  const fmtRate = r => r % 1 === 0 ? r : r.toFixed(1);
+
+  // Stats bar
+  document.getElementById('stat-cost').textContent = total + ' copper';
+  document.getElementById('stat-dist').textContent = Math.round(totalDist).toLocaleString() + ' blks';
+  document.getElementById('stat-dist-r').textContent = roundedDist.toLocaleString() + ' blks';
+
+  el.innerHTML = `
+    <div class="cost-row"><span class="cost-label">Route distance (actual)</span><span class="cost-val">${Math.round(totalDist).toLocaleString()} blocks</span></div>
+    <div class="cost-row"><span class="cost-label">Rounded (nearest ${S.round.toLocaleString()})</span><span class="cost-val">${roundedDist.toLocaleString()} blocks</span></div>
+    ${rt==='round'||doReturn ? `<div class="cost-row"><span class="cost-label">Effective distance (with return)</span><span class="cost-val">${effectiveDist.toLocaleString()} blocks</span></div>` : ''}
+    <div class="cost-row" style="margin-top:8px">
+      <span class="cost-label">Cartier fee (${carts} cart${carts>1?'s':''} × ${fmtRate(S.cart)}¢/1k blks)</span>
+      <span class="cost-val copper">${carrierCost} copper</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-label">Escort fee (${escorts} merc${escorts!==1?'s':''} × ${fmtRate(S.escort)}¢/1k blks)</span>
+      <span class="cost-val copper">${escortCost} copper</span>
+    </div>
+    <div class="cost-row">
+      <span class="cost-label">Guild fee (${fmtRate(guildRate)}¢/1k blks${direct?' · direct ×'+fmtRate(S.directMult):''}${grace?' · grace period':''})</span>
+      <span class="cost-val copper">${guildCost} copper</span>
+    </div>
+    <div class="cost-row total"><span>Total Cost</span><span>${total} copper</span></div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Guild collects ${escortCost+guildCost} copper · Cartier receives ${carrierCost} copper</div>
+  `;
+}
+
+function updateCosts() { renderCosts(); }
+
+function refresh() {
+  renderLocList();
+  renderStartSelect();
+  document.getElementById('stat-locs').textContent = locations.length;
+  recalc();
+}
+
+// ─── ROUTING (Nearest-Neighbour TSP + 2-opt) ─────────────────────────────────
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function ceil4(n) { return Math.ceil(n); }
+
+function roundN(n, unit) { return Math.round(n / unit) * unit; }
+
+function round500(n) { return roundN(n, getSettings().round); }
+
+function nnTSP(indices, startIdx) {
+  const n = indices.length;
+  if (n === 0) return [];
+  const visited = new Array(n).fill(false);
+  const route = [];
+  let cur = startIdx !== undefined ? startIdx : 0;
+  visited[cur] = true;
+  route.push(cur);
+  for (let s = 1; s < n; s++) {
+    let best = Infinity, bestJ = -1;
+    for (let j = 0; j < n; j++) {
+      if (!visited[j]) {
+        const d = dist(locations[indices[cur]], locations[indices[j]]);
+        if (d < best) { best = d; bestJ = j; }
+      }
+    }
+    visited[bestJ] = true;
+    route.push(bestJ);
+    cur = bestJ;
+  }
+  return route.map(i => indices[i]);
+}
+
+function twoOpt(route, maxIter=200) {
+  let improved = true, iter = 0;
+  while (improved && iter++ < maxIter) {
+    improved = false;
+    for (let i = 0; i < route.length - 1; i++) {
+      for (let j = i + 2; j < route.length; j++) {
+        const a = locations[route[i]], b = locations[route[i+1]];
+        const c = locations[route[j]], d = locations[route[(j+1) % route.length]];
+        const before = dist(a,b) + dist(c,d);
+        const after  = dist(a,c) + dist(b,d);
+        if (after < before - 0.001) {
+          route.splice(i+1, j-i, ...route.slice(i+1, j+1).reverse());
+          improved = true;
+        }
+      }
+    }
+  }
+  return route;
+}
+
+function routeLength(route, closed) {
+  let d = 0;
+  for (let i = 0; i < route.length - 1; i++) d += dist(locations[route[i]], locations[route[i+1]]);
+  if (closed && route.length > 1) d += dist(locations[route[route.length-1]], locations[route[0]]);
+  return d;
+}
+
+function recalc() {
+  const n = locations.length;
+  if (n < 2) { routeOrder = n === 1 ? [0] : []; totalDist = 0; roundedDist = 0; renderRouteList(); renderCosts(); drawMap(); document.getElementById('stat-dist').textContent='—'; document.getElementById('stat-dist-r').textContent='—'; document.getElementById('stat-cost').textContent='—'; return; }
+
+  const rt      = document.getElementById('route-type').value;
+  const startId = document.getElementById('route-start').value;
+  const closed  = rt === 'round';
+
+  const indices = locations.map((_,i) => i);
+  let startIdx  = 0;
+  if (startId) {
+    const si = locations.findIndex(l => l.id === startId);
+    if (si >= 0) startIdx = si;
+  }
+
+  // NN from fixed start
+  let route = nnTSP(indices, startIdx);
+  // Ensure fixed start remains at front
+  if (startId) {
+    const si = route.indexOf(startIdx);
+    if (si > 0) route = [...route.slice(si), ...route.slice(0, si)];
+  }
+  // 2-opt (don't move first element if fixed)
+  const toOpt = startId ? route.slice(1) : route;
+  const optimised = startId ? [route[0], ...twoOpt(toOpt)] : twoOpt(route);
+
+  routeOrder = optimised;
+  totalDist  = routeLength(routeOrder, closed);
+  roundedDist = round500(totalDist);
+
+  renderRouteList();
+  renderCosts();
+  drawMap();
+
+  document.getElementById('stat-dist').textContent   = Math.round(totalDist).toLocaleString() + ' blks';
+  document.getElementById('stat-dist-r').textContent = roundedDist.toLocaleString() + ' blks';
+}
+
+// ─── MAP CANVAS ───────────────────────────────────────────────────────────────
+const canvas = document.getElementById('map-canvas');
+const ctx    = canvas.getContext('2d');
+
+function worldToScreen(wx, wy) {
+  return {
+    sx: (wx - cam.x) * cam.scale + canvas.width / 2,
+    sy: (wy - cam.y) * cam.scale + canvas.height / 2,
+  };
+}
+function screenToWorld(sx, sy) {
+  return {
+    wx: (sx - canvas.width / 2) / cam.scale + cam.x,
+    wy: (sy - canvas.height / 2) / cam.scale + cam.y,
+  };
+}
+
+function resizeCanvas() {
+  const c = document.getElementById('map-container');
+  canvas.width  = c.clientWidth;
+  canvas.height = c.clientHeight;
+  drawMap();
+}
+
+function drawMap() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  const gridSpacing = 500 * cam.scale;
+  if (gridSpacing > 10) {
+    ctx.strokeStyle = 'rgba(58,48,32,0.35)';
+    ctx.lineWidth = 1;
+    const ox = (((-cam.x * cam.scale) + W/2) % gridSpacing + gridSpacing) % gridSpacing;
+    const oy = (((-cam.y * cam.scale) + H/2) % gridSpacing + gridSpacing) % gridSpacing;
+    for (let x = ox; x < W; x += gridSpacing) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = oy; y < H; y += gridSpacing) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  }
+
+  // Axes
+  const org = worldToScreen(0, 0);
+  ctx.strokeStyle = 'rgba(201,168,76,0.15)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(org.sx,0); ctx.lineTo(org.sx,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,org.sy); ctx.lineTo(W,org.sy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (!locations.length) return;
+
+  // Route lines
+  const rt = document.getElementById('route-type').value;
+  if (routeOrder.length > 1) {
+    ctx.lineWidth = 2.5;
+    for (let i = 0; i < routeOrder.length - 1; i++) {
+      const a = worldToScreen(locations[routeOrder[i]].x, locations[routeOrder[i]].y);
+      const b = worldToScreen(locations[routeOrder[i+1]].x, locations[routeOrder[i+1]].y);
+      const grad = ctx.createLinearGradient(a.sx, a.sy, b.sx, b.sy);
+      grad.addColorStop(0, locations[routeOrder[i]].color + 'cc');
+      grad.addColorStop(1, locations[routeOrder[i+1]].color + 'cc');
+      ctx.strokeStyle = grad;
+      // Arrow
+      ctx.beginPath();
+      ctx.moveTo(a.sx, a.sy);
+      ctx.lineTo(b.sx, b.sy);
+      ctx.stroke();
+      drawArrow(ctx, a.sx, a.sy, b.sx, b.sy);
+    }
+    if (rt === 'round') {
+      const a = worldToScreen(locations[routeOrder[routeOrder.length-1]].x, locations[routeOrder[routeOrder.length-1]].y);
+      const b = worldToScreen(locations[routeOrder[0]].x, locations[routeOrder[0]].y);
+      ctx.setLineDash([6,4]);
+      ctx.strokeStyle = 'rgba(201,168,76,0.4)';
+      ctx.beginPath(); ctx.moveTo(a.sx,a.sy); ctx.lineTo(b.sx,b.sy); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Nodes
+  locations.forEach((loc, idx) => {
+    const { sx, sy } = worldToScreen(loc.x, loc.y);
+    const isStart = routeOrder[0] === idx;
+    const r = isStart ? 10 : 8;
+
+    // Glow
+    const grd = ctx.createRadialGradient(sx,sy,0,sx,sy,r*2.5);
+    grd.addColorStop(0, loc.color + '55');
+    grd.addColorStop(1, loc.color + '00');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(sx,sy,r*2.5,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = loc.color;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = isStart ? '#fff' : 'rgba(255,255,255,0.5)';
+    ctx.lineWidth   = isStart ? 2 : 1.2;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.stroke();
+
+    // Label
+    const ri = routeOrder.indexOf(idx);
+    if (ri >= 0) {
+      ctx.fillStyle = '#0e0c09';
+      ctx.font = 'bold 8px Cinzel, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ri + 1, sx, sy);
+    }
+
+    // Name label
+    ctx.font = '13px "Crimson Pro", serif';
+    ctx.fillStyle = '#f0dba0';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const lx = sx + r + 5, ly = sy - r - 4;
+    ctx.fillStyle = 'rgba(14,12,9,0.7)';
+    const tw = ctx.measureText(loc.name).width;
+    ctx.fillRect(lx - 2, ly - 8, tw + 4, 16);
+    ctx.fillStyle = '#f0dba0';
+    ctx.fillText(loc.name, lx, ly);
+  });
+}
+
+function drawArrow(ctx, x1, y1, x2, y2) {
+  const mx = (x1+x2)/2, my = (y1+y2)/2;
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const size = 8;
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.rotate(angle);
+  ctx.fillStyle = 'rgba(201,168,76,0.7)';
+  ctx.beginPath();
+  ctx.moveTo(size, 0);
+  ctx.lineTo(-size/2, size/2);
+  ctx.lineTo(-size/2, -size/2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function centreOn(wx, wy) {
+  cam.x = wx; cam.y = wy;
+  drawMap();
+}
+
+function resetView() {
+  if (!locations.length) { cam = {x:0,y:0,scale:1}; drawMap(); return; }
+  const xs = locations.map(l=>l.x), ys = locations.map(l=>l.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+  const padX = canvas.width  * 0.8 / Math.max(maxX-minX, 1);
+  const padY = canvas.height * 0.8 / Math.max(maxY-minY, 1);
+  cam = { x: cx, y: cy, scale: Math.min(padX, padY, 2) };
+  drawMap();
+}
+
+function zoomMap(factor) {
+  cam.scale = Math.max(0.05, Math.min(8, cam.scale * factor));
+  drawMap();
+}
+
+// ─── CANVAS EVENTS ────────────────────────────────────────────────────────────
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.12 : 0.9;
+  const { wx, wy } = screenToWorld(e.offsetX, e.offsetY);
+  cam.scale = Math.max(0.05, Math.min(8, cam.scale * factor));
+  const after = screenToWorld(e.offsetX, e.offsetY);
+  cam.x += wx - after.wx; cam.y += wy - after.wy;
+  drawMap();
+}, { passive: false });
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  drag = { active: false, sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y, moved: false };
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mouseup', onMouseUp);
+});
+
+function onMouseMove(e) {
+  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if (!drag.active && (Math.abs(dx)>4 || Math.abs(dy)>4)) drag.active = true;
+  if (drag.active) {
+    cam.x = drag.cx - dx / cam.scale;
+    cam.y = drag.cy - dy / cam.scale;
+    drawMap();
+  }
+  // Tooltip
+  const {wx,wy} = screenToWorld(e.offsetX, e.offsetY);
+  const tt = document.getElementById('tooltip');
+  const hit = locations.find(l => Math.hypot(l.x-wx, l.y-wy) < 12/cam.scale);
+  if (hit) {
+    tt.style.display='block'; tt.style.left=(e.offsetX+14)+'px'; tt.style.top=(e.offsetY-8)+'px';
+    const ri = routeOrder.indexOf(locations.indexOf(hit));
+    tt.textContent = `${hit.name}  (${hit.x}, ${hit.y})${ri>=0?' · Stop #'+(ri+1):''}`;
+  } else { tt.style.display='none'; }
+}
+
+function onMouseUp(e) {
+  canvas.removeEventListener('mousemove', onMouseMove);
+  canvas.removeEventListener('mouseup', onMouseUp);
+  if (!drag.active) {
+    // Click to place
+    const {wx,wy} = screenToWorld(e.offsetX, e.offsetY);
+    const rx = Math.round(wx), ry = Math.round(wy);
+    // Pre-fill form
+    document.getElementById('loc-x').value = rx;
+    document.getElementById('loc-y').value = ry;
+    switchTab('locations');
+    document.getElementById('loc-name').focus();
+  }
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  const names = ['locations','route','costs','settings'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', names[i] === id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', resizeCanvas);
+load();
+loadSettings();
+resizeCanvas();
+refresh();
+setTimeout(resetView, 50);
+</script>
+
+<footer>
+  <div class="footer-rule"></div>
+  <div class="footer-inner">
+    <div class="footer-ornament">✦</div>
+    <div class="footer-text">
+      <span class="footer-character">Alexander Verklärte</span>
+      <span class="footer-divider">·</span>
+      <span class="footer-player">Arkzenir</span>
+    </div>
+    <div class="footer-ornament">✦</div>
+  </div>
+</footer>
+
+<style>
+  footer {
+    flex-shrink: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, #130f08 100%);
+    border-top: 1px solid var(--border);
+  }
+  .footer-rule {
+    height: 1px;
+    margin: 0 40px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim) 20%, var(--gold) 50%, var(--gold-dim) 80%, transparent);
+    opacity: 0.5;
+  }
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 10px 32px;
+  }
+  .footer-ornament {
+    color: var(--gold-dim);
+    font-size: .75rem;
+    opacity: 0.7;
+  }
+  .footer-character {
+    font-family: 'Cinzel', serif;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    color: var(--gold);
+  }
+  .footer-divider {
+    color: var(--gold-dim);
+    font-size: .9rem;
+  }
+  .footer-player {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: .85rem;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+</style>
+</body>
+</html>
