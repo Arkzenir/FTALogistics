@@ -345,15 +345,21 @@
           <option value="round">Round Trip (return to start)</option>
         </select>
       </div>
-      <div>
+      <div id="route-start-wrap">
         <label>Start Location (fixed)</label>
         <select id="route-start" onchange="recalc()">
           <option value="">— Any (auto-optimise) —</option>
         </select>
       </div>
-      <button class="btn btn-primary" onclick="recalc()">⟳ Optimise Route</button>
 
-      <div class="section-title" style="margin-top:4px">OPTIMISED STOPS</div>
+      <div class="section-title" style="margin-top:4px">CALCULATION MODE</div>
+      <div style="display:flex; gap:8px;">
+        <button id="btn-optimise" class="btn btn-primary" style="flex:1" onclick="setRouteMode('optimised')">⟳ Optimise Route</button>
+        <button id="btn-listed"   class="btn btn-ghost"   style="flex:1" onclick="setRouteMode('listed')">↓ Use List Order</button>
+      </div>
+      <p id="route-mode-hint" style="font-size:.75rem;color:var(--muted);font-style:italic;margin-top:-4px">Shortest path via nearest-neighbour + 2-opt.</p>
+
+      <div class="section-title" style="margin-top:4px"><span id="route-list-label">OPTIMISED STOPS</span></div>
       <div class="route-list" id="route-list">
         <p class="empty-hint">Add at least 2 locations to calculate a route.</p>
       </div>
@@ -498,6 +504,7 @@ let locations = [];   // {id, name, x, y, color}
 let routeOrder = [];  // indices into locations[]
 let totalDist  = 0;
 let roundedDist= 0;
+let routeMode  = 'optimised'; // 'optimised' | 'listed'
 
 // Camera
 let cam = { x: 0, y: 0, scale: 1 };
@@ -819,34 +826,56 @@ function routeLength(route, closed) {
   return d;
 }
 
+function setRouteMode(mode) {
+  routeMode = mode;
+  const isOpt = mode === 'optimised';
+  document.getElementById('btn-optimise').className  = 'btn ' + (isOpt  ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('btn-listed').className    = 'btn ' + (!isOpt ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('route-start-wrap').style.display = isOpt ? '' : 'none';
+  document.getElementById('route-mode-hint').textContent    = isOpt
+    ? 'Shortest path via nearest-neighbour + 2-opt.'
+    : 'Follows the order locations appear in the list.';
+  document.getElementById('route-list-label').textContent   = isOpt ? 'OPTIMISED STOPS' : 'LISTED STOPS';
+  recalc();
+}
+
 function recalc() {
   const n = locations.length;
-  if (n < 2) { routeOrder = n === 1 ? [0] : []; totalDist = 0; roundedDist = 0; renderRouteList(); renderCosts(); drawMap(); document.getElementById('stat-dist').textContent='—'; document.getElementById('stat-dist-r').textContent='—'; document.getElementById('stat-cost').textContent='—'; return; }
-
-  const rt      = document.getElementById('route-type').value;
-  const startId = document.getElementById('route-start').value;
-  const closed  = rt === 'round';
-
-  const indices = locations.map((_,i) => i);
-  let startIdx  = 0;
-  if (startId) {
-    const si = locations.findIndex(l => l.id === startId);
-    if (si >= 0) startIdx = si;
+  if (n < 2) {
+    routeOrder = n === 1 ? [0] : [];
+    totalDist = 0; roundedDist = 0;
+    renderRouteList(); renderCosts(); drawMap();
+    document.getElementById('stat-dist').textContent='—';
+    document.getElementById('stat-dist-r').textContent='—';
+    document.getElementById('stat-cost').textContent='—';
+    return;
   }
 
-  // NN from fixed start
-  let route = nnTSP(indices, startIdx);
-  // Ensure fixed start remains at front
-  if (startId) {
-    const si = route.indexOf(startIdx);
-    if (si > 0) route = [...route.slice(si), ...route.slice(0, si)];
-  }
-  // 2-opt (don't move first element if fixed)
-  const toOpt = startId ? route.slice(1) : route;
-  const optimised = startId ? [route[0], ...twoOpt(toOpt)] : twoOpt(route);
+  const rt     = document.getElementById('route-type').value;
+  const closed = rt === 'round';
 
-  routeOrder = optimised;
-  totalDist  = routeLength(routeOrder, closed);
+  if (routeMode === 'listed') {
+    // Simply use the order locations appear in the array
+    routeOrder = locations.map((_, i) => i);
+  } else {
+    // Optimised: NN + 2-opt
+    const startId = document.getElementById('route-start').value;
+    const indices = locations.map((_, i) => i);
+    let startIdx  = 0;
+    if (startId) {
+      const si = locations.findIndex(l => l.id === startId);
+      if (si >= 0) startIdx = si;
+    }
+    let route = nnTSP(indices, startIdx);
+    if (startId) {
+      const si = route.indexOf(startIdx);
+      if (si > 0) route = [...route.slice(si), ...route.slice(0, si)];
+    }
+    const toOpt  = startId ? route.slice(1) : route;
+    routeOrder   = startId ? [route[0], ...twoOpt(toOpt)] : twoOpt(route);
+  }
+
+  totalDist   = routeLength(routeOrder, closed);
   roundedDist = round500(totalDist);
 
   renderRouteList();
