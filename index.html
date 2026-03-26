@@ -29,7 +29,8 @@
     color: var(--text);
     font-family: 'Crimson Pro', Georgia, serif;
     font-size: 16px;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
@@ -58,10 +59,10 @@
   main {
     display: grid;
     grid-template-columns: 340px 1fr;
-    grid-template-rows: 1fr auto;
     gap: 0;
     flex: 1;
     overflow: hidden;
+    min-height: 0;
   }
 
   /* ── SIDEBAR ── */
@@ -70,7 +71,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    grid-row: 1 / 3;
   }
 
   .sidebar-tabs {
@@ -221,21 +221,6 @@
     white-space: nowrap;
     color: var(--gold-pale);
   }
-
-  /* ── BOTTOM STATS BAR ── */
-  #stats-bar {
-    grid-column: 2;
-    border-top: 1px solid var(--border);
-    padding: 10px 24px;
-    display: flex;
-    gap: 32px;
-    align-items: center;
-    background: var(--surface);
-    font-size: .82rem;
-  }
-  .stat { display: flex; gap: 8px; align-items: center; }
-  .stat-label { color: var(--muted); }
-  .stat-val { color: var(--gold-pale); font-family: 'Cinzel',serif; font-size:.85rem; }
 
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 6px; }
@@ -472,6 +457,13 @@
 
       <button class="btn btn-ghost btn-sm" onclick="resetSettings()" style="margin-top:4px">↺ Reset to FTA defaults</button>
     </div>
+    <div class="sidebar-sig">
+      <span class="sig-ornament">✦</span>
+      <span class="sig-character">Alexander Verklärte</span>
+      <span class="sig-divider">·</span>
+      <span class="sig-player">Arkzenir</span>
+      <span class="sig-ornament">✦</span>
+    </div>
   </aside>
 
   <!-- MAP -->
@@ -486,14 +478,7 @@
     <div class="click-hint">Click map to place location · Scroll to zoom · Drag to pan</div>
   </div>
 
-  <!-- STATS BAR -->
-  <div id="stats-bar">
-    <div class="stat"><span class="stat-label">Locations:</span><span class="stat-val" id="stat-locs">0</span></div>
-    <div class="stat"><span class="stat-label">Total Distance:</span><span class="stat-val" id="stat-dist">—</span></div>
-    <div class="stat"><span class="stat-label">Rounded (500-blk):</span><span class="stat-val" id="stat-dist-r">—</span></div>
-    <div class="stat"><span class="stat-label">Total Cost:</span><span class="stat-val" id="stat-cost" style="color:var(--gold)">—</span></div>
-  </div>
-</main>
+  </main>
 
 <script>
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -655,6 +640,8 @@ function renderRouteList() {
   el.innerHTML = html;
 }
 
+function setStat(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
 function toggleCostMode() {
   const isMessenger = document.getElementById('c-mode').value === 'messenger';
   document.getElementById('c-delivery-fields').style.display  = isMessenger ? 'none' : '';
@@ -692,9 +679,9 @@ function renderCosts() {
     const guildCost   = chargeGuild ? ceil4(guildRate * effKilo) : 0;
     const total       = courierCost + guildCost;
 
-    document.getElementById('stat-cost').textContent    = total + ' copper';
-    document.getElementById('stat-dist').textContent    = Math.round(totalDist).toLocaleString() + ' blks';
-    document.getElementById('stat-dist-r').textContent  = roundedDist.toLocaleString() + ' blks';
+    setStat('stat-cost', total + ' copper');
+    setStat('stat-dist', Math.round(totalDist).toLocaleString() + ' blks');
+    setStat('stat-dist-r', roundedDist.toLocaleString() + ' blks');
 
     el.innerHTML = `
       <div class="cost-row"><span class="cost-label">Route distance (actual)</span><span class="cost-val">${Math.round(totalDist).toLocaleString()} blocks</span></div>
@@ -732,9 +719,9 @@ function renderCosts() {
     const guildCost   = ceil4(guildRate * effKilo);
     const total       = carrierCost + escortCost + guildCost;
 
-    document.getElementById('stat-cost').textContent    = total + ' copper';
-    document.getElementById('stat-dist').textContent    = Math.round(totalDist).toLocaleString() + ' blks';
-    document.getElementById('stat-dist-r').textContent  = roundedDist.toLocaleString() + ' blks';
+    setStat('stat-cost', total + ' copper');
+    setStat('stat-dist', Math.round(totalDist).toLocaleString() + ' blks');
+    setStat('stat-dist-r', roundedDist.toLocaleString() + ' blks');
 
     el.innerHTML = `
       <div class="cost-row"><span class="cost-label">Route distance (actual)</span><span class="cost-val">${Math.round(totalDist).toLocaleString()} blocks</span></div>
@@ -763,7 +750,7 @@ function updateCosts() { renderCosts(); }
 function refresh() {
   renderLocList();
   renderStartSelect();
-  document.getElementById('stat-locs').textContent = locations.length;
+  setStat('stat-locs', locations.length);
   recalc();
 }
 
@@ -845,9 +832,9 @@ function recalc() {
     routeOrder = n === 1 ? [0] : [];
     totalDist = 0; roundedDist = 0;
     renderRouteList(); renderCosts(); drawMap();
-    document.getElementById('stat-dist').textContent='—';
-    document.getElementById('stat-dist-r').textContent='—';
-    document.getElementById('stat-cost').textContent='—';
+    setStat('stat-dist', '—');
+    setStat('stat-dist-r', '—');
+    setStat('stat-cost', '—');
     return;
   }
 
@@ -882,8 +869,8 @@ function recalc() {
   renderCosts();
   drawMap();
 
-  document.getElementById('stat-dist').textContent   = Math.round(totalDist).toLocaleString() + ' blks';
-  document.getElementById('stat-dist-r').textContent = roundedDist.toLocaleString() + ' blks';
+  setStat('stat-dist', Math.round(totalDist).toLocaleString() + ' blks');
+  setStat('stat-dist-r', roundedDist.toLocaleString() + ' blks');
 }
 
 // ─── MAP CANVAS ───────────────────────────────────────────────────────────────
@@ -1119,60 +1106,51 @@ refresh();
 setTimeout(resetView, 50);
 </script>
 
-<footer>
-  <div class="footer-rule"></div>
-  <div class="footer-inner">
-    <div class="footer-ornament">✦</div>
-    <div class="footer-text">
-      <span class="footer-character">Alexander Verklärte</span>
-      <span class="footer-divider">·</span>
-      <span class="footer-player">Arkzenir</span>
-    </div>
-    <div class="footer-ornament">✦</div>
-  </div>
-</footer>
-
 <style>
-  footer {
+  .sidebar-sig {
     flex-shrink: 0;
-    background: linear-gradient(180deg, var(--bg) 0%, #130f08 100%);
     border-top: 1px solid var(--border);
-  }
-  .footer-rule {
-    height: 1px;
-    margin: 0 40px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim) 20%, var(--gold) 50%, var(--gold-dim) 80%, transparent);
-    opacity: 0.5;
-  }
-  .footer-inner {
+    padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    padding: 10px 32px;
+    gap: 10px;
+    background: linear-gradient(180deg, var(--surface) 0%, #130f08 100%);
+    position: relative;
   }
-  .footer-ornament {
+  .sidebar-sig::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20px; right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim) 30%, var(--gold) 50%, var(--gold-dim) 70%, transparent);
+    opacity: 0.45;
+  }
+  .sig-ornament {
     color: var(--gold-dim);
-    font-size: .75rem;
+    font-size: .65rem;
     opacity: 0.7;
+    flex-shrink: 0;
   }
-  .footer-character {
+  .sig-character {
     font-family: 'Cinzel', serif;
-    font-size: .82rem;
+    font-size: .72rem;
     font-weight: 600;
-    letter-spacing: .12em;
+    letter-spacing: .1em;
     color: var(--gold);
+    white-space: nowrap;
   }
-  .footer-divider {
+  .sig-divider {
     color: var(--gold-dim);
-    font-size: .9rem;
+    font-size: .8rem;
+    flex-shrink: 0;
   }
-  .footer-player {
+  .sig-player {
     font-family: 'Crimson Pro', serif;
     font-style: italic;
-    font-size: .85rem;
+    font-size: .78rem;
     color: var(--muted);
-    letter-spacing: .04em;
+    white-space: nowrap;
   }
 </style>
 </body>
